@@ -52,6 +52,10 @@ class SearchFlights:
 
         """
         encoded_filters = filters.encode()
+        print("\n[FLI DEBUG] Full curl command for this request:")
+        print(f"curl 'https://www.google.com/_/FlightsFrontendUi/data/travel.frontend.flights.FlightsFrontendService/GetShoppingResults' \\")
+        print("  -H 'content-type: application/x-www-form-urlencoded;charset=UTF-8' \\")
+        print(f"  --data-raw 'f.req={encoded_filters}'\n")
 
         try:
             response = self.client.post(

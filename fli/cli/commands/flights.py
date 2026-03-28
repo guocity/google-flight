@@ -31,8 +31,10 @@ def _search_flights_core(
     cabin_class: str = "ECONOMY",
     max_stops: str = "ANY",
     sort_by: str = "CHEAPEST",
+    json_output: bool = False,
 ):
     """Core flight search functionality."""
+    import json as _json
     try:
         # Parse parameters using shared utilities
         origin_airport = resolve_airport(origin)
@@ -80,8 +82,26 @@ def _search_flights_core(
             typer.echo("No flights found.")
             raise typer.Exit(1)
 
-        # Display results
-        display_flight_results(results)
+        if json_output:
+            import enum, datetime as dt
+            def serialize(obj):
+                if isinstance(obj, enum.Enum):
+                    return obj.value
+                if isinstance(obj, dt.datetime):
+                    return obj.isoformat()
+                if isinstance(obj, list):
+                    return [serialize(i) for i in obj]
+                if isinstance(obj, dict):
+                    return {k: serialize(v) for k, v in obj.items()}
+                return obj
+            def flight_to_dict(f):
+                if isinstance(f, tuple):
+                    return [flight_to_dict(f[0]), flight_to_dict(f[1])]
+                d = f.dict() if hasattr(f, 'dict') else f.__dict__
+                return serialize(d)
+            typer.echo(_json.dumps([flight_to_dict(r) for r in results], indent=2))
+        else:
+            display_flight_results(results)
 
     except ParseError as e:
         typer.echo(f"Error: {str(e)}")
@@ -147,6 +167,13 @@ def flights(
             help="Sort results by (CHEAPEST, DURATION, DEPARTURE_TIME, ARRIVAL_TIME)",
         ),
     ] = "CHEAPEST",
+    json_output: Annotated[
+        bool,
+        typer.Option(
+            "--json",
+            help="Output results as JSON",
+        ),
+    ] = False,
 ):
     """Search for flights on a specific date.
 
@@ -164,4 +191,5 @@ def flights(
         cabin_class=cabin_class,
         max_stops=max_stops,
         sort_by=sort_by,
+        json_output=json_output,
     )
