@@ -57,6 +57,7 @@ def main():
     parser.add_argument("--airlines", type=str, help="Comma-separated airline codes (e.g. AA,DL)")
     parser.add_argument("--max-duration", type=int, help="Max duration in minutes")
     parser.add_argument("--sort", type=str, choices=["NONE", "TOP_FLIGHTS", "CHEAPEST", "DEPARTURE", "ARRIVAL", "DURATION"], default="NONE")
+    parser.add_argument("--cheapest", action="store_true", help="Shortcut for --sort CHEAPEST")
     
     # Time Windows
     parser.add_argument("--outbound-time", type=str, help="Outbound departure window HH-HH")
@@ -106,6 +107,8 @@ def main():
         "DURATION": SortBy.DURATION
     }
     sort_by = sort_map[args.sort]
+    if args.cheapest:
+        sort_by = SortBy.CHEAPEST
 
     # Optional filters
     price_limit = PriceLimit(max_price=args.price) if args.price else None

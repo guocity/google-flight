@@ -189,7 +189,7 @@ class FlightSearchFilters(BaseModel):
             serialize(self.sort_by.value),
             0,  # constant
             0,  # constant
-            2,  # constant
+            2 if self.sort_by == SortBy.CHEAPEST else 1,
         ]
 
         return filters
