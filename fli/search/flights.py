@@ -37,25 +37,33 @@ class SearchFlights:
 
     def search(
         self, filters: FlightSearchFilters, top_n: int = 5
-    ) -> list[FlightResult | tuple[FlightResult, FlightResult]] | None:
+    ) -> list[FlightResult | tuple[FlightResult, ...]] | None:
         """Search for flights using the given FlightSearchFilters.
 
         Args:
             filters: Full flight search object including airports, dates, and preferences
-            top_n: Number of flights to limit the return flight search to
+            top_n: Number of flights to limit the subsequent segment searches to
 
         Returns:
-            List of FlightResult objects containing flight details, or None if no results
+            List of FlightResult objects or tuples of FlightResult objects for multi-segment trips, or None if no results
 
         Raises:
             Exception: If the search fails or returns invalid data
 
         """
         encoded_filters = filters.encode()
-        print("\n[FLI DEBUG] Full curl command for this request:")
-        print(f"curl 'https://www.google.com/_/FlightsFrontendUi/data/travel.frontend.flights.FlightsFrontendService/GetShoppingResults' \\")
-        print("  -H 'content-type: application/x-www-form-urlencoded;charset=UTF-8' \\")
-        print(f"  --data-raw 'f.req={encoded_filters}'\n")
+        
+        # Determine which segment we are currently searching for
+        current_segment_idx = 0
+        for i, segment in enumerate(filters.flight_segments):
+            if segment.selected_flight is None:
+                current_segment_idx = i
+                break
+            else:
+                # All segments before current_segment_idx are selected
+                if i == len(filters.flight_segments) - 1:
+                    # All segments already selected? This shouldn't happen in normal recursion
+                    return None
 
         try:
             response = self.client.post(
@@ -70,34 +78,42 @@ class SearchFlights:
             if not parsed:
                 return None
 
-            encoded_filters = json.loads(parsed)
+            encoded_filters_res = json.loads(parsed)
             flights_data = [
                 item
                 for i in [2, 3]
-                if isinstance(encoded_filters[i], list)
-                for item in encoded_filters[i][0]
+                if isinstance(encoded_filters_res[i], list)
+                for item in encoded_filters_res[i][0]
             ]
             flights = [self._parse_flights_data(flight) for flight in flights_data]
 
+            # If it's a ONE_WAY or the LAST segment of a MULTI_CITY/ROUND_TRIP
             if (
                 filters.trip_type == TripType.ONE_WAY
-                or filters.flight_segments[0].selected_flight is not None
+                or current_segment_idx == len(filters.flight_segments) - 1
             ):
                 return flights
 
-            # Get the return flights if round-trip
-            flight_pairs = []
-            # Call the search again with the return flight data
+            # Otherwise, we need to search for the next segment(s)
+            complete_journeys = []
+            
+            # For each flight found for the CURRENT segment
             for selected_flight in flights[:top_n]:
-                selected_flight_filters = deepcopy(filters)
-                selected_flight_filters.flight_segments[0].selected_flight = selected_flight
-                return_flights = self.search(selected_flight_filters, top_n=top_n)
-                if return_flights is not None:
-                    flight_pairs.extend(
-                        (selected_flight, return_flight) for return_flight in return_flights
-                    )
+                # Create a copy of filters and mark the current segment as selected
+                next_filters = deepcopy(filters)
+                next_filters.flight_segments[current_segment_idx].selected_flight = selected_flight
+                
+                # Search for the next segments
+                next_segments_results = self.search(next_filters, top_n=top_n)
+                
+                if next_segments_results:
+                    for next_res in next_segments_results:
+                        if isinstance(next_res, tuple):
+                            complete_journeys.append((selected_flight,) + next_res)
+                        else:
+                            complete_journeys.append((selected_flight, next_res))
 
-            return flight_pairs
+            return complete_journeys
 
         except Exception as e:
             raise Exception(f"Search failed: {str(e)}") from e

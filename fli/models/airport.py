@@ -4413,7 +4413,7 @@ class Airport(Enum):
     LAP = "Leon Airport"
     LAQ = "La Braq Airport"
     LAR = "General Brees Field"
-    LAS = "McCarran International Airport"
+    LAS = "Harry Reid International Airport"
     LAT = "La Uribe"
     LAU = "Lamu"
     LAV = "Lalomalava"

@@ -169,6 +169,16 @@ fli dates JFK LHR \
 | `--stops, -s`    | Maximum stops         | `NON_STOP`, `ONE_STOP` |
 | `--sort, -o`     | Sort results by       | `CHEAPEST`, `DURATION` |
 
+#### JSON API CLI (`fli.cli.api`)
+
+For programmatic use and integration with other tools, we provide a JSON-emitting CLI:
+
+```bash
+uv run python3 -m fli.cli.api NYC LAS 4/1 4/10 --cabin BUSINESS
+```
+
+See [api.md](api.md) for full documentation of parameters and the JSON output format.
+
 #### Dates Command (`fli dates`)
 
 | Option        | Description   | Example                |

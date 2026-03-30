@@ -67,7 +67,7 @@ class FlightSearchFilters(BaseModel):
 
         # Format flight segments
         formatted_segments = []
-        for segment in self.flight_segments:
+        for i, segment in enumerate(self.flight_segments):
             # Format airport codes with correct nesting
             segment_filters = [
                 [
@@ -110,10 +110,11 @@ class FlightSearchFilters(BaseModel):
             layover_duration = (
                 self.layover_restrictions.max_duration if self.layover_restrictions else None
             )
-
-            # Selected flight (to fetch return flights)
+            # Selected flight (to fetch return/next flights)
+            # In multi-city, only segments before the current one should have selected flights.
+            # But the API format for selected flight is specific to each segment.
             selected_flights = None
-            if self.trip_type == TripType.ROUND_TRIP and segment.selected_flight is not None:
+            if segment.selected_flight is not None:
                 selected_flights = [
                     [
                         serialize(leg.departure_airport.name),
@@ -125,6 +126,18 @@ class FlightSearchFilters(BaseModel):
                     ]
                     for leg in segment.selected_flight.legs
                 ]
+
+            # In multi-city, segments before the last one often use 3, last uses 1.
+            segment_code = 3
+            if self.trip_type == TripType.ONE_WAY:
+                segment_code = 3
+            elif self.trip_type == TripType.ROUND_TRIP:
+                segment_code = 3
+            elif self.trip_type == TripType.MULTI_CITY:
+                if i >= len(self.flight_segments) - 2:
+                    segment_code = 1
+                else:
+                    segment_code = 3
 
             segment_formatted = [
                 segment_filters[0],  # departure airport
@@ -141,7 +154,7 @@ class FlightSearchFilters(BaseModel):
                 None,  # placeholder
                 layover_duration,  # layover duration
                 None,  # emissions
-                3,  # constant value
+                segment_code,  # segment type code
             ]
             formatted_segments.append(segment_formatted)
 
