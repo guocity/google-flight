@@ -9,6 +9,7 @@ from pydantic import (
 
 from fli.models.airline import Airline
 from fli.models.airport import Airport
+from fli.models.city import City
 from fli.models.google_flights.base import (
     FlightSegment,
     LayoverRestrictions,
@@ -56,6 +57,8 @@ class FlightSearchFilters(BaseModel):
         def serialize(obj):
             if isinstance(obj, Airport) or isinstance(obj, Airline):
                 return obj.name
+            if isinstance(obj, City):
+                return obj.value
             if isinstance(obj, Enum):
                 return obj.value
             if isinstance(obj, list):

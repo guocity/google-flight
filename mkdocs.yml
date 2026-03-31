@@ -105,3 +105,4 @@ nav:
   - API Reference:
     - Models: api/models.md
     - Search: api/search.md 
+    - GetShoppingResults: api/get_shopping_results.md

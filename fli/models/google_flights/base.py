@@ -19,6 +19,7 @@ from pydantic import (
 
 from fli.models.airline import Airline
 from fli.models.airport import Airport
+from fli.models.city import City
 
 
 class SeatType(Enum):
@@ -115,7 +116,7 @@ class PriceLimit(BaseModel):
 class LayoverRestrictions(BaseModel):
     """Constraints for layovers in multi-leg flights."""
 
-    airports: list[Airport] | None = None
+    airports: list[Airport | City] | None = None
     max_duration: PositiveInt | None = None
 
 
@@ -148,8 +149,8 @@ class FlightSegment(BaseModel):
     JFK -> LAX and LAX -> SEA.
     """
 
-    departure_airport: list[list[Airport | int]]
-    arrival_airport: list[list[Airport | int]]
+    departure_airport: list[list[Airport | City | int]]
+    arrival_airport: list[list[Airport | City | int]]
     travel_date: str
     time_restrictions: TimeRestrictions | None = None
     selected_flight: FlightResult | None = None
@@ -177,11 +178,13 @@ class FlightSegment(BaseModel):
         # Get first airport from each nested list
         dep_airport = (
             self.departure_airport[0][0]
-            if isinstance(self.departure_airport[0][0], Airport)
+            if isinstance(self.departure_airport[0][0], (Airport, City))
             else None
         )
         arr_airport = (
-            self.arrival_airport[0][0] if isinstance(self.arrival_airport[0][0], Airport) else None
+            self.arrival_airport[0][0]
+            if isinstance(self.arrival_airport[0][0], (Airport, City))
+            else None
         )
 
         if dep_airport and arr_airport and dep_airport == arr_airport:
